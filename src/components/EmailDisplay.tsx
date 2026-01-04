@@ -41,11 +41,11 @@ const EmailDisplay = ({
 
   return (
     <div className="glass-card glow-border p-6 md:p-8 animate-fade-in">
-      <div className="flex items-center gap-3 mb-4">
-        <div className="p-2 rounded-lg bg-primary/10">
+      <div className="flex items-center gap-3 mb-5">
+        <div className="p-2.5 rounded-md bg-primary/10 border border-primary/20">
           <Mail className="w-5 h-5 text-primary" />
         </div>
-        <h2 className="text-lg font-medium text-foreground">Your Temporary Email</h2>
+        <h2 className="text-lg font-serif font-medium text-foreground">Your Temporary Email</h2>
       </div>
       
       <div className="flex flex-col sm:flex-row gap-3">

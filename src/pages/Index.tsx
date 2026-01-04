@@ -39,10 +39,10 @@ const Index = () => {
       </Helmet>
 
       <div className="min-h-screen bg-background relative overflow-hidden">
-        {/* Background effects */}
-        <div className="fixed inset-0 grid-pattern opacity-30" />
-        <div className="fixed top-0 left-1/2 -translate-x-1/2 w-[800px] h-[600px] bg-primary/5 rounded-full blur-[120px] pointer-events-none" />
-        <div className="fixed bottom-0 right-0 w-[400px] h-[400px] bg-accent/10 rounded-full blur-[100px] pointer-events-none" />
+        {/* Background effects - warm subtle glow */}
+        <div className="fixed inset-0 grid-pattern opacity-20" />
+        <div className="fixed top-0 left-1/2 -translate-x-1/2 w-[900px] h-[600px] bg-primary/3 rounded-full blur-[150px] pointer-events-none" />
+        <div className="fixed bottom-0 right-0 w-[500px] h-[500px] bg-accent/5 rounded-full blur-[120px] pointer-events-none" />
 
         <main className="relative z-10 container max-w-4xl mx-auto px-4 py-12 md:py-20">
           <Header />
