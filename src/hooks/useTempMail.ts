@@ -7,6 +7,7 @@ interface TempMailAccount {
   id: string;
   address: string;
   token: string;
+  createdAt: number; // timestamp when account was created
 }
 
 interface ApiMessage {
@@ -21,15 +22,27 @@ interface ApiMessage {
 }
 
 const STORAGE_KEY = "tempmail_account";
+const EXPIRATION_MINUTES = 60; // Email expires after 60 minutes
 
 export const useTempMail = () => {
   const [account, setAccount] = useState<TempMailAccount | null>(() => {
     const stored = localStorage.getItem(STORAGE_KEY);
-    return stored ? JSON.parse(stored) : null;
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      // Check if account has expired
+      const expiresAt = parsed.createdAt + EXPIRATION_MINUTES * 60 * 1000;
+      if (Date.now() > expiresAt) {
+        localStorage.removeItem(STORAGE_KEY);
+        return null;
+      }
+      return parsed;
+    }
+    return null;
   });
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [autoRefreshSeconds, setAutoRefreshSeconds] = useState(30);
+  const [expirationSeconds, setExpirationSeconds] = useState<number | null>(null);
   const isCreatingAccount = useRef(false);
 
   const callApi = async (action: string, token?: string, messageId?: string) => {
@@ -57,8 +70,13 @@ export const useTempMail = () => {
     setIsLoading(true);
     try {
       console.log("Creating new temporary email account...");
-      const newAccount = await callApi("create");
-      console.log("Account created:", newAccount.address);
+      const apiAccount = await callApi("create");
+      console.log("Account created:", apiAccount.address);
+      
+      const newAccount: TempMailAccount = {
+        ...apiAccount,
+        createdAt: Date.now(),
+      };
       
       setAccount(newAccount);
       localStorage.setItem(STORAGE_KEY, JSON.stringify(newAccount));
@@ -175,11 +193,37 @@ export const useTempMail = () => {
     }
   }, [account?.token, refreshInbox]);
 
+  // Expiration countdown
+  useEffect(() => {
+    if (!account?.createdAt) {
+      setExpirationSeconds(null);
+      return;
+    }
+
+    const calculateExpiration = () => {
+      const expiresAt = account.createdAt + EXPIRATION_MINUTES * 60 * 1000;
+      const remaining = Math.max(0, Math.floor((expiresAt - Date.now()) / 1000));
+      setExpirationSeconds(remaining);
+
+      // Auto-create new email when expired
+      if (remaining <= 0) {
+        toast.info("Email expired. Creating new address...");
+        generateNewEmail();
+      }
+    };
+
+    calculateExpiration();
+    const interval = setInterval(calculateExpiration, 1000);
+
+    return () => clearInterval(interval);
+  }, [account?.createdAt, generateNewEmail]);
+
   return {
     email: account?.address || "Loading...",
     messages,
     isLoading,
     autoRefreshSeconds,
+    expirationSeconds,
     refreshInbox,
     generateNewEmail,
     markAsRead,
