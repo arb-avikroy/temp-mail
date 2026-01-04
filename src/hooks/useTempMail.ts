@@ -1,91 +1,160 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import { Message } from "@/components/InboxMessage";
+import { toast } from "sonner";
 
-const DOMAINS = ["tempmail.io", "quickmail.dev", "disposable.email", "throwaway.mail"];
+interface TempMailAccount {
+  id: string;
+  address: string;
+  token: string;
+}
 
-const generateRandomString = (length: number) => {
-  const chars = "abcdefghijklmnopqrstuvwxyz0123456789";
-  return Array.from({ length }, () => chars[Math.floor(Math.random() * chars.length)]).join("");
-};
+interface ApiMessage {
+  id: string;
+  from: { address: string; name: string };
+  subject: string;
+  intro: string;
+  text?: string;
+  html?: string[];
+  createdAt: string;
+  seen: boolean;
+}
 
-const generateEmail = () => {
-  const username = generateRandomString(10);
-  const domain = DOMAINS[Math.floor(Math.random() * DOMAINS.length)];
-  return `${username}@${domain}`;
-};
-
-// Demo messages for demonstration purposes
-const demoMessages: Message[] = [
-  {
-    id: "1",
-    from: "noreply@service.com",
-    subject: "Welcome to Our Service!",
-    preview: "Thank you for signing up. We're excited to have you on board...",
-    date: new Date(Date.now() - 1000 * 60 * 5), // 5 minutes ago
-    read: false,
-  },
-  {
-    id: "2",
-    from: "newsletter@updates.io",
-    subject: "Your Weekly Newsletter",
-    preview: "Here's what you missed this week. Top stories and trending topics...",
-    date: new Date(Date.now() - 1000 * 60 * 30), // 30 minutes ago
-    read: true,
-  },
-  {
-    id: "3",
-    from: "verify@accounts.net",
-    subject: "Verify Your Email Address",
-    preview: "Please click the link below to verify your email address and complete...",
-    date: new Date(Date.now() - 1000 * 60 * 60 * 2), // 2 hours ago
-    read: true,
-  },
-];
+const STORAGE_KEY = "tempmail_account";
 
 export const useTempMail = () => {
-  const [email, setEmail] = useState(() => generateEmail());
+  const [account, setAccount] = useState<TempMailAccount | null>(() => {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    return stored ? JSON.parse(stored) : null;
+  });
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [autoRefreshSeconds, setAutoRefreshSeconds] = useState(30);
+  const isCreatingAccount = useRef(false);
+
+  const callApi = async (action: string, token?: string, messageId?: string) => {
+    const { data, error } = await supabase.functions.invoke("temp-mail", {
+      body: { action, token, messageId },
+    });
+
+    if (error) {
+      console.error("API error:", error);
+      throw new Error(error.message || "API call failed");
+    }
+
+    if (data?.error) {
+      console.error("API returned error:", data.error);
+      throw new Error(data.error);
+    }
+
+    return data;
+  };
+
+  const createAccount = useCallback(async () => {
+    if (isCreatingAccount.current) return;
+    isCreatingAccount.current = true;
+    
+    setIsLoading(true);
+    try {
+      console.log("Creating new temporary email account...");
+      const newAccount = await callApi("create");
+      console.log("Account created:", newAccount.address);
+      
+      setAccount(newAccount);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(newAccount));
+      setMessages([]);
+      toast.success("New email address created!");
+    } catch (error: any) {
+      console.error("Failed to create account:", error);
+      toast.error("Failed to create email. Please try again.");
+    } finally {
+      setIsLoading(false);
+      isCreatingAccount.current = false;
+    }
+  }, []);
 
   const refreshInbox = useCallback(async () => {
+    if (!account?.token) return;
+    
     setIsLoading(true);
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-    
-    // For demo purposes, randomly add messages
-    if (Math.random() > 0.7 && messages.length < 5) {
-      const newMessage: Message = {
-        id: Date.now().toString(),
-        from: `sender${Math.floor(Math.random() * 100)}@example.com`,
-        subject: `New Message #${messages.length + 1}`,
-        preview: "This is a new message that just arrived in your inbox...",
-        date: new Date(),
-        read: false,
-      };
-      setMessages((prev) => [newMessage, ...prev]);
+    try {
+      console.log("Refreshing inbox...");
+      const apiMessages: ApiMessage[] = await callApi("getMessages", account.token);
+      
+      const formattedMessages: Message[] = apiMessages.map((msg) => ({
+        id: msg.id,
+        from: msg.from.name ? `${msg.from.name} <${msg.from.address}>` : msg.from.address,
+        subject: msg.subject || "(No subject)",
+        preview: msg.intro || "",
+        date: new Date(msg.createdAt),
+        read: msg.seen,
+      }));
+      
+      setMessages(formattedMessages);
+      console.log("Inbox refreshed:", formattedMessages.length, "messages");
+    } catch (error: any) {
+      console.error("Failed to refresh inbox:", error);
+      // If token expired, create new account
+      if (error.message?.includes("401") || error.message?.includes("Unauthorized")) {
+        toast.error("Session expired. Creating new email...");
+        localStorage.removeItem(STORAGE_KEY);
+        setAccount(null);
+      }
+    } finally {
+      setIsLoading(false);
+      setAutoRefreshSeconds(30);
     }
-    
-    setIsLoading(false);
-    setAutoRefreshSeconds(30);
-  }, [messages.length]);
+  }, [account?.token]);
 
-  const generateNewEmail = useCallback(() => {
-    setEmail(generateEmail());
+  const generateNewEmail = useCallback(async () => {
+    localStorage.removeItem(STORAGE_KEY);
+    setAccount(null);
     setMessages([]);
-    setAutoRefreshSeconds(30);
-  }, []);
+    await createAccount();
+  }, [createAccount]);
 
-  const markAsRead = useCallback((messageId: string) => {
-    setMessages((prev) =>
-      prev.map((msg) =>
-        msg.id === messageId ? { ...msg, read: true } : msg
-      )
-    );
-  }, []);
+  const markAsRead = useCallback(async (messageId: string) => {
+    if (!account?.token) return;
+    
+    try {
+      await callApi("markAsRead", account.token, messageId);
+      setMessages((prev) =>
+        prev.map((msg) =>
+          msg.id === messageId ? { ...msg, read: true } : msg
+        )
+      );
+    } catch (error) {
+      console.error("Failed to mark as read:", error);
+    }
+  }, [account?.token]);
+
+  const getMessageContent = useCallback(async (messageId: string): Promise<string> => {
+    if (!account?.token) return "";
+    
+    try {
+      const fullMessage = await callApi("getMessage", account.token, messageId);
+      // Return HTML content if available, otherwise text, otherwise intro
+      if (fullMessage.html && fullMessage.html.length > 0) {
+        return fullMessage.html.join("");
+      }
+      return fullMessage.text || fullMessage.intro || "";
+    } catch (error) {
+      console.error("Failed to get message content:", error);
+      return "";
+    }
+  }, [account?.token]);
+
+  // Initialize account on mount
+  useEffect(() => {
+    if (!account) {
+      createAccount();
+    }
+  }, [account, createAccount]);
 
   // Auto-refresh countdown
   useEffect(() => {
+    if (!account?.token) return;
+
     const interval = setInterval(() => {
       setAutoRefreshSeconds((prev) => {
         if (prev <= 1) {
@@ -97,23 +166,23 @@ export const useTempMail = () => {
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [refreshInbox]);
+  }, [account?.token, refreshInbox]);
 
-  // Load demo messages on first mount
+  // Initial refresh when account is ready
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setMessages(demoMessages);
-    }, 2000);
-    return () => clearTimeout(timer);
-  }, []);
+    if (account?.token) {
+      refreshInbox();
+    }
+  }, [account?.token, refreshInbox]);
 
   return {
-    email,
+    email: account?.address || "Loading...",
     messages,
     isLoading,
     autoRefreshSeconds,
     refreshInbox,
     generateNewEmail,
     markAsRead,
+    getMessageContent,
   };
 };

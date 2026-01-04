@@ -1,0 +1,4 @@
+project_id = "ydxwmklyzkqvkfhkkgog"
+
+[functions.temp-mail]
+verify_jwt = false
