@@ -17,6 +17,7 @@ const Index = () => {
     refreshInbox,
     generateNewEmail,
     markAsRead,
+    getMessageContent,
   } = useTempMail();
 
   const [selectedMessage, setSelectedMessage] = useState<Message | null>(null);
@@ -67,6 +68,7 @@ const Index = () => {
         <MessageModal
           message={selectedMessage}
           onClose={() => setSelectedMessage(null)}
+          getMessageContent={getMessageContent}
         />
       </div>
     </>
