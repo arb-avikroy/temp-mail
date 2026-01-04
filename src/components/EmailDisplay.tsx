@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Copy, Check, RefreshCw, Mail } from "lucide-react";
+import { Copy, Check, RefreshCw, Mail, Timer } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
@@ -9,14 +9,22 @@ interface EmailDisplayProps {
   onNewEmail: () => void;
   isLoading: boolean;
   autoRefreshSeconds: number;
+  expirationSeconds: number | null;
 }
+
+const formatTime = (totalSeconds: number): string => {
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return `${minutes}:${seconds.toString().padStart(2, "0")}`;
+};
 
 const EmailDisplay = ({ 
   email, 
   onRefresh, 
   onNewEmail, 
   isLoading,
-  autoRefreshSeconds 
+  autoRefreshSeconds,
+  expirationSeconds 
 }: EmailDisplayProps) => {
   const [copied, setCopied] = useState(false);
 
@@ -80,11 +88,19 @@ const EmailDisplay = ({
         </div>
       </div>
       
-      <div className="mt-4 flex items-center justify-between text-sm text-muted-foreground">
-        <span>Auto-refresh in {autoRefreshSeconds}s</span>
+      <div className="mt-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-sm text-muted-foreground">
+        <div className="flex items-center gap-4">
+          <span>Auto-refresh in {autoRefreshSeconds}s</span>
+          {expirationSeconds !== null && (
+            <span className="flex items-center gap-1.5">
+              <Timer className="w-3.5 h-3.5" />
+              Expires in {formatTime(expirationSeconds)}
+            </span>
+          )}
+        </div>
         <span className="flex items-center gap-2">
-          <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-          Active
+          <span className={`w-2 h-2 rounded-full ${expirationSeconds !== null && expirationSeconds < 300 ? 'bg-amber-500' : 'bg-green-500'} animate-pulse`} />
+          {expirationSeconds !== null && expirationSeconds < 300 ? 'Expiring soon' : 'Active'}
         </span>
       </div>
     </div>

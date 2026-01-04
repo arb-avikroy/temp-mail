@@ -14,6 +14,7 @@ const Index = () => {
     messages,
     isLoading,
     autoRefreshSeconds,
+    expirationSeconds,
     refreshInbox,
     generateNewEmail,
     markAsRead,
@@ -53,6 +54,7 @@ const Index = () => {
               onNewEmail={generateNewEmail}
               isLoading={isLoading}
               autoRefreshSeconds={autoRefreshSeconds}
+              expirationSeconds={expirationSeconds}
             />
             
             <Inbox
