@@ -11,12 +11,12 @@ const Inbox = ({ messages, onMessageClick, isLoading }: InboxProps) => {
   return (
     <div className="glass-card glow-border p-6 md:p-8 animate-fade-in" style={{ animationDelay: '0.1s' }}>
       <div className="flex items-center gap-3 mb-6">
-        <div className="p-2 rounded-lg bg-primary/10">
+        <div className="p-2.5 rounded-md bg-primary/10 border border-primary/20">
           <InboxIcon className="w-5 h-5 text-primary" />
         </div>
-        <h2 className="text-lg font-medium text-foreground">Inbox</h2>
+        <h2 className="text-lg font-serif font-medium text-foreground">Inbox</h2>
         {messages.length > 0 && (
-          <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-primary/10 text-primary">
+          <span className="px-2.5 py-1 text-xs font-medium rounded-md bg-primary/10 text-primary border border-primary/20">
             {messages.length}
           </span>
         )}

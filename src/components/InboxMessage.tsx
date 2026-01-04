@@ -19,15 +19,15 @@ const InboxMessage = ({ message, onClick }: InboxMessageProps) => {
   return (
     <button
       onClick={() => onClick(message)}
-      className={`w-full text-left p-4 md:p-5 glass-card glow-border transition-all duration-300 hover:bg-card/70 hover:scale-[1.01] group animate-fade-in ${
+      className={`w-full text-left p-4 md:p-5 glass-card transition-all duration-300 hover:bg-card/70 hover:border-primary/20 group animate-fade-in ${
         !message.read ? 'border-l-2 border-l-primary' : ''
       }`}
     >
       <div className="flex items-start gap-4">
-        <div className={`p-2 rounded-lg shrink-0 ${
-          message.read ? 'bg-muted' : 'bg-primary/10'
+        <div className={`p-2.5 rounded-md shrink-0 ${
+          message.read ? 'bg-muted' : 'bg-primary/10 border border-primary/20'
         }`}>
-          <Mail className={`w-5 h-5 ${
+          <Mail className={`w-4 h-4 ${
             message.read ? 'text-muted-foreground' : 'text-primary'
           }`} />
         </div>
@@ -39,24 +39,24 @@ const InboxMessage = ({ message, onClick }: InboxMessageProps) => {
             }`}>
               {message.from}
             </span>
-            <div className="flex items-center gap-1 text-xs text-muted-foreground shrink-0">
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground shrink-0">
               <Clock className="w-3 h-3" />
               {formatDistanceToNow(message.date, { addSuffix: true })}
             </div>
           </div>
           
-          <h3 className={`text-sm mb-1 truncate ${
+          <h3 className={`text-sm mb-1.5 truncate ${
             message.read ? 'text-muted-foreground' : 'text-foreground font-medium'
           }`}>
             {message.subject}
           </h3>
           
-          <p className="text-sm text-muted-foreground truncate">
+          <p className="text-sm text-muted-foreground/70 truncate">
             {message.preview}
           </p>
         </div>
         
-        <ChevronRight className="w-5 h-5 text-muted-foreground shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" />
+        <ChevronRight className="w-5 h-5 text-muted-foreground/50 shrink-0 opacity-0 group-hover:opacity-100 group-hover:text-primary transition-all" />
       </div>
     </button>
   );
