@@ -2,7 +2,8 @@ import { X, Clock, User, FileText, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Message } from "./InboxMessage";
 import { formatDistanceToNow, format } from "date-fns";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
+import DOMPurify from "dompurify";
 
 interface MessageModalProps {
   message: Message | null;
@@ -32,6 +33,18 @@ const MessageModal = ({ message, onClose, getMessageContent }: MessageModalProps
 
   const displayContent = content || message.preview;
   const isHtml = content.includes("<") && content.includes(">");
+
+  // Sanitize HTML content to prevent XSS attacks
+  const sanitizedContent = useMemo(() => {
+    if (!isHtml) return displayContent;
+    return DOMPurify.sanitize(displayContent, {
+      ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'u', 'a', 'ul', 'ol', 'li', 'h1', 'h2', 'h3', 'h4', 'span', 'div', 'table', 'tr', 'td', 'th', 'tbody', 'thead', 'img'],
+      ALLOWED_ATTR: ['href', 'target', 'rel', 'src', 'alt', 'width', 'height', 'style'],
+      ADD_ATTR: ['target'],
+      FORBID_TAGS: ['script', 'iframe', 'object', 'embed', 'form', 'input'],
+      FORBID_ATTR: ['onerror', 'onload', 'onclick', 'onmouseover'],
+    });
+  }, [displayContent, isHtml]);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -84,7 +97,7 @@ const MessageModal = ({ message, onClose, getMessageContent }: MessageModalProps
                 {isHtml ? (
                   <div 
                     className="text-foreground"
-                    dangerouslySetInnerHTML={{ __html: displayContent }} 
+                    dangerouslySetInnerHTML={{ __html: sanitizedContent }} 
                   />
                 ) : (
                   <p className="text-foreground whitespace-pre-wrap leading-relaxed">
