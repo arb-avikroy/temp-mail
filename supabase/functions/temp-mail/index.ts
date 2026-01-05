@@ -3,16 +3,20 @@ import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
 
 // Allowed origins for CORS - restrict to your domains
 const ALLOWED_ORIGINS = [
+  "https://ydxwmklyzkqvkhkkpog.supabase.co",
   "https://ydxwmklyzkqvkfhkkgog.lovableproject.com",
   "http://localhost:8080",
   "http://localhost:5173",
   "http://localhost:3000",
+  "https://arb-avikroy.github.io",
+  "https://glowing-goggles-qp5rxwv7677f9xxw-8081.app.github.dev"
 ];
 
 // Generate CORS headers based on request origin
 function getCorsHeaders(origin: string | null): Record<string, string> {
   const isAllowed = origin && ALLOWED_ORIGINS.some(allowed => 
-    origin === allowed || origin.endsWith('.lovableproject.com') || origin.endsWith('.lovable.app')
+    origin === allowed || origin.endsWith('.lovableproject.com') || origin.endsWith('.lovable.app') || origin.endsWith('.supabase.co') || ||
+    origin.endsWith('.github.io') || origin.endsWith('.app.github.dev')
   );
   
   return {
