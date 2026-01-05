@@ -15,7 +15,7 @@ const ALLOWED_ORIGINS = [
 // Generate CORS headers based on request origin
 function getCorsHeaders(origin: string | null): Record<string, string> {
   const isAllowed = origin && ALLOWED_ORIGINS.some(allowed => 
-    origin === allowed || origin.endsWith('.lovableproject.com') || origin.endsWith('.lovable.app') || origin.endsWith('.supabase.co') || ||
+    origin === allowed || origin.endsWith('.lovableproject.com') || origin.endsWith('.lovable.app') || origin.endsWith('.supabase.co') ||
     origin.endsWith('.github.io') || origin.endsWith('.app.github.dev')
   );
   
